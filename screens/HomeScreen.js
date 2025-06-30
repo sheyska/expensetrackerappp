@@ -1,39 +1,92 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }) {
   const [transactions, setTransactions] = useState([]);
-  const [balance, setBalance] = useState(0);
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [today, setToday] = useState('');
 
   useEffect(() => {
-    const loadTransactions = async () => {
-      const data = await AsyncStorage.getItem('transactions');
-      const parsed = data ? JSON.parse(data) : [];
-      setTransactions(parsed);
+    const todayDate = new Date().toISOString().split('T')[0]; 
+    setToday(todayDate);
+    loadTransactions();
+  }, []);
 
-      const total = parsed.reduce((sum, tx) => sum + Number(tx.amount), 0);
-      setBalance(total);
+  const loadTransactions = async () => {
+    const data = await AsyncStorage.getItem('transactions');
+    if (data) {
+      setTransactions(JSON.parse(data));
+    }
+  };
+
+  const saveTransactions = async (newList) => {
+    setTransactions(newList);
+    await AsyncStorage.setItem('transactions', JSON.stringify(newList));
+  };
+
+  const addTransaction = async () => {
+    if (!amount || !description) return;
+    const date = new Date().toISOString().split('T')[0]; 
+    const newTransaction = {
+      id: Date.now().toString(),
+      amount: parseFloat(amount),
+      description,
+      date,
     };
+    const newList = [newTransaction, ...transactions];
+    saveTransactions(newList);
+    setAmount('');
+    setDescription('');
+  };
 
-    const unsubscribe = navigation.addListener('focus', loadTransactions);
-    return unsubscribe;
-  }, [navigation]);
+  const deleteTransaction = async (id) => {
+    const updatedList = transactions.filter((item) => item.id !== id);
+    saveTransactions(updatedList);
+  };
+
+  
+  const todaysTransactions = transactions.filter((t) => t.date === today);
+  const totalToday = todaysTransactions.reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.balance}>Balance: ₱{balance}</Text>
-      <Button title="Add Transaction" onPress={() => navigation.navigate('Add Transaction')} />
+      <Text style={styles.header}>Expense Tracker</Text>
+      <Text style={styles.dateText}>Today's Date: {today}</Text>
+      <Text style={styles.totalText}>Total Expense Today: ₱{totalToday.toFixed(2)}</Text>
 
+      <TextInput
+        placeholder="Amount"
+        value={amount}
+        onChangeText={setAmount}
+        keyboardType="numeric"
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
+        style={styles.input}
+      />
+      <Button title="Add Expense" onPress={addTransaction} />
+
+      <Text style={styles.sectionTitle}>Today's Transactions</Text>
       <FlatList
-        data={transactions}
-        keyExtractor={(item, index) => index.toString()}
+        data={todaysTransactions}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Text style={item.amount < 0 ? styles.expense : styles.income}>
-            {item.note}: ₱{item.amount}
-          </Text>
+          <View style={styles.itemRow}>
+            <View style={styles.itemText}>
+              <Text>{item.description}</Text>
+              <Text>₱{item.amount}</Text>
+            </View>
+            <TouchableOpacity onPress={() => deleteTransaction(item.id)} style={styles.deleteButton}>
+              <Text style={styles.deleteText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         )}
-        style={{ marginTop: 20 }}
+        ListEmptyComponent={<Text>No expenses today.</Text>}
       />
     </View>
   );
@@ -41,7 +94,35 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { padding: 20, flex: 1 },
-  balance: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
-  expense: { color: 'red', fontSize: 16, marginVertical: 4 },
-  income: { color: 'green', fontSize: 16, marginVertical: 4 },
+  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
+  dateText: { fontSize: 16, textAlign: 'center', marginBottom: 5 },
+  totalText: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  input: { borderWidth: 1, padding: 10, marginBottom: 10, borderRadius: 5, backgroundColor: '#fff' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginVertical: 10 },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    borderBottomWidth: 1,
+  },
+  itemText: {
+    flex: 1,
+  },
+  deleteButton: {
+    padding: 5,
+    backgroundColor: 'red',
+    borderRadius: 4,
+  },
+  deleteText: {
+    color: 'white',
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#e6f7ff', 
+  }
 });
+
+

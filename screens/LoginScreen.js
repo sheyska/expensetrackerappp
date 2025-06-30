@@ -37,8 +37,17 @@ export default function LoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { padding: 20, flex: 1, justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  welcome: { fontSize: 35, fontWeight: 'bold', marginTop: 25, textAlign: 'center' },
   input: { borderWidth: 1, padding: 10, marginBottom: 10, borderRadius: 5 },
   registerLink: { marginTop: 15, color: 'blue', textAlign: 'center' },
+
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#e6f7ff', // light blue background
+  },
+ 
 });
 
